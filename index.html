@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+      <title>sd의 벽돌게임</title>
+        <style>
+    	    * { padding: 0; margin: 0; }
+          canvas { background: #eee; display: block; margin: 0 auto; }
+        </style>
+  </head>
+          <body>
+
+            <canvas id="myCanvas" width="560" height="480"> </canvas>
+
+              <script> //게임 제어 하는 곳.
+
+                var canvas = document.getElementById("myCanvas");
+                var ctx = canvas.getContext("2d");
+
+                var x = canvas.width/2;  //공 시작 위치
+                var y = canvas.height-30; //공 날아가는 방향
+
+                //공 움직이는 속도
+                var dx = 3;
+                var dy = -3;
+
+                //원의 반경 계산을 위한 변수
+                var ballRadius = 10;
+
+                //패들생성
+                var paddleHeight = 10;  //패들 높이
+                var paddleWidth = 75;   //패들 넓이
+                var paddleX = (canvas.width-paddleWidth)/2;  //x축의 시작점 정의
+
+                //두 가지 모두의 기본값 false은 처음에는 제어 버튼이 눌러지지 않았기 때문에, 키 누름을 청취하기 위해 두개의 이벤트 리스너를 설정.
+                var rightPressed = false;
+                var leftPressed = false;
+
+                //벽돌생성
+                var brickRowCount = 3;  //벽돌의 행
+                var brickColumnCount = 6;  // 벽돌의 열
+                var brickWidth = 75;   // 벽돌의 너비
+                var brickHeight = 20;  // 벽돌의 높이
+                var brickPadding = 10;  // 벽돌간 간격
+                var brickOffsetTop = 50;  // 벽돌끼리 서로 닿지 않도록 설정
+                var brickOffsetLeft = 30;  // 벽돌끼리 서로 닿지 않도록 설정
+
+                //벽돌을 2차원 배열로 유지 벽돌 열(c) 벽돌 행(r)
+                var bricks = [];
+                for(var c=0; c<brickColumnCount; c++)
+                {
+                    bricks[c] = [];
+                    for(var r=0; r<brickRowCount; r++)
+                    {
+                      //벽돌을 초기화 하는 코드 부분 status 에서 각 별돌 객체에 속성을 추가.
+                      //벽돌이 공에 맞았을 시 제거 할 수 있게 하는 변수설정
+                      bricks[c][r] = { x: 0, y: 0, status: 1 };
+                    }
+                }
+                // 점수 변수 설정
+                var score = 0;
+
+                // 키보드 양옆으로 움직이는 게임을 만들고자 함으로 상 하 버튼은 실행 하지 않도록 함
+                document.addEventListener("keydown", keyDownHandler, false);
+                document.addEventListener("keyup", keyUpHandler, false);
+
+                function keyDownHandler(e)
+                {
+                  if(e.keyCode == 39)
+                  {
+                    rightPressed = true;
+                  }
+                  else if(e.keyCode == 37)
+                  {
+                    leftPressed = true;
+                  }
+                }
+
+               function keyUpHandler(e)
+               {
+                 if(e.keyCode == 39)
+                 {
+                  rightPressed = false;
+                 }
+                 else if(e.keyCode == 37)
+                 {
+                  leftPressed = false;
+                 }
+               }
+
+               //벽돌과 공의 충돌 감시 함수
+               //공의 중심이 벽돌 중 하나의 좌표 안에 있으면 공의 방향을 바꿀 것이다.
+               //공의 x 위치는 벽돌의 x 위치보다 크다.
+               //볼의 x 위치는 브릭의 x 위치와 너비 보다 작다.
+               //공의 y 위치가 벽돌의 y 위치보다 크다.
+               //볼의 y 위치는 벽돌의 y 위치와 높이보다 작다.
+               function collisionDetection()
+               {
+                 for(var c=0; c<brickColumnCount; c++)
+                 {
+                   for(var r=0; r<brickRowCount; r++)
+                   {
+                     var b = bricks[c][r];
+                     //충돌이 발생하면 주어진 벽돌의 상태를 0 화면에 그려 지도록 설정
+                     if(b.status == 1)
+                     {
+                       if(x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight)
+                       {
+                         dy = -dy;
+                         b.status = 0;
+                         score++; //벽돌에 부딪 칠 때마다 점수를 부여
+                         // 게임을 클리어 했을 경우의 함수
+                         if(score == brickRowCount*brickColumnCount) //만약 벽돌의 생성 수 와 score 의 값이 같을 시 클리어 설정
+                         {
+                           alert("Good Job!!");
+                           document.location.reload(); //페이지를 다시 로드하고 경고 버튼을 클릭하면 게임을 다시 시작함.
+                           clearInterval(interval); //chrome이 게임을 끝내기 위해 필요
+                         }
+                       }
+                     }
+                   }
+                 }
+               }
+
+              // 점수 표시만들고 업데이트 하는 함수 설정
+              function drawScore()
+              {
+                ctx.font = "16px Arial"; //글씨 크기와 글꼴
+                ctx.fillStyle = "#0095DD"; //글꼴 색
+                ctx.fillText("Score sdzzang: "+score, 8, 20);
+              }
+
+                //공 생성 함수
+                function drawBall()
+                {
+                  ctx.beginPath();
+                  ctx.arc(x, y, ballRadius, 0, Math.PI*2);
+                  ctx.fillStyle = "#0095DD"; //공의 색상
+                  ctx.fill();
+                  ctx.closePath();
+                }
+
+               function drawPaddle()
+               {
+                 ctx.beginPath();
+                 ctx.rect(paddleX, canvas.height-paddleHeight, paddleWidth, paddleHeight);
+                 ctx.fillStyle = "#0095DD";
+                 ctx.fill();
+                 ctx.closePath();
+               }
+
+               //모든 벽돌을 반복하여 화면에 그려주는 함수
+               function drawBricks()
+               {
+                 for(var c=0; c<brickColumnCount; c++)
+                 {
+                   for(var r=0; r<brickRowCount; r++)
+                   {
+                     // 벽돌이 공에 맞으면 더이상 화면에 출력하지 않는 함수.
+                     if(bricks[c][r].status == 1)
+                     {
+
+                       var brickX = (c*(brickWidth+brickPadding))+brickOffsetLeft;
+                       var brickY = (r*(brickHeight+brickPadding))+brickOffsetTop;
+                       bricks[c][r].x = brickX;
+                       bricks[c][r].y = brickY;
+                       ctx.beginPath();
+                       ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                       ctx.fillStyle = "#0095DD";
+                       ctx.fill();
+                       ctx.closePath();
+                     }
+                   }
+                 }
+               }
+
+               function draw()
+               {
+                 ctx.clearRect(0, 0, canvas.width, canvas.height); //★이전 프레임 즉 공이 움직이면서 흔적을 남기는 것을 지우는 것.★
+                 drawBricks(); //벽돌의 설정을 화면에 실행 시키기 위해 함수 호출
+                 drawBall();   // 볼에 대한 설정 화면 호출
+                 drawPaddle(); //패들의 설정을 화면에 실행 시키기 위해 함수 호출
+                 drawScore(); //스코어에 대한 설정 화면에 함수 호출
+                 collisionDetection(); //벽돌과 공이 충돌 했을 때 제거 되는 설정 화면 함수 호출
+                 x += dx;
+                 y += dy;
+
+                 //만약 공이 프레임당 2픽셀의 속도로 벽을 맞는 다면 -2픽셀로 반대로 움직임
+                 if(x + dx > canvas.width-ballRadius || x + dx < ballRadius)
+                 {
+                   dx = -dx;
+                 }
+
+                 if(y + dy < ballRadius)
+                 {
+                   dy = -dy;
+                 }
+
+                 //게임오버 설정 ←↑→ 면만 공이 부딪혔을 때 반대로 튕기고 ↓ 면에 닿았을 떄 게임이 끝나는 설정
+                 else if(y + dy > canvas.height-ballRadius)
+                 {
+                   if(x > paddleX && x < paddleX + paddleWidth)
+                   {
+                     dy = -dy;
+                   }
+
+                   else
+                   {
+                     alert("Game Over !");
+                     document.location.reload();
+                   }
+                 }
+
+                 //패들 왼쪽 오른쪽 운동을 7픽셀 이동하고 canvas 안에서만 좌 우 운동을 할 수 있게 설정
+                 if(rightPressed && paddleX < canvas.width-paddleWidth)
+                 {
+                   paddleX += 7;
+                 }
+                 else if(leftPressed && paddleX > 0)
+                 {
+                   paddleX -= 7;
+                 }
+               }
+
+               setInterval(draw, 10); //매 10 밀리 초
+
+              </script>
+
+        </body>
+</html>
